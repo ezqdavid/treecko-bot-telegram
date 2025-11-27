@@ -1,5 +1,6 @@
 """PDF parser for MercadoPago transaction receipts."""
 
+import io
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -60,8 +61,6 @@ class MercadoPagoPDFParser:
         Raises:
             ValueError: If the PDF cannot be parsed.
         """
-        import io
-
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             text = ""
             for page in pdf.pages:

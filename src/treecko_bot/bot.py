@@ -2,7 +2,6 @@
 
 import logging
 import os
-import tempfile
 
 from telegram import Update
 from telegram.ext import (
