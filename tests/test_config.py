@@ -58,3 +58,16 @@ def test_config_defaults():
 
     # Clean up
     del os.environ["TELEGRAM_BOT_TOKEN"]
+
+
+def test_config_invalid_port():
+    """Test that invalid PORT raises ValueError with helpful message."""
+    os.environ["TELEGRAM_BOT_TOKEN"] = "test_token"
+    os.environ["PORT"] = "not_a_number"
+
+    with pytest.raises(ValueError, match="PORT must be a valid integer"):
+        Config.from_env()
+
+    # Clean up
+    del os.environ["TELEGRAM_BOT_TOKEN"]
+    del os.environ["PORT"]

@@ -32,7 +32,12 @@ class Config:
         google_sheet_id = os.getenv("GOOGLE_SHEET_ID", "")
         database_path = os.getenv("DATABASE_PATH", "transactions.db")
         webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "")
-        port = int(os.getenv("PORT", "8080"))
+
+        port_str = os.getenv("PORT", "8080")
+        try:
+            port = int(port_str)
+        except ValueError as e:
+            raise ValueError(f"PORT must be a valid integer, got: {port_str}") from e
 
         return cls(
             telegram_token=telegram_token,

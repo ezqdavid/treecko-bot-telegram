@@ -1,5 +1,6 @@
 """Telegram bot handlers."""
 
+import hashlib
 import logging
 import os
 
@@ -270,12 +271,14 @@ class TreeckoBot:
         Args:
             application: The Telegram Application instance.
         """
-        # Build webhook URL using a secure path that includes the token
-        webhook_path = f"/webhook/{self.config.telegram_token}"
+        # Build webhook URL using a hash of the token for security
+        # This prevents the full token from appearing in server logs
+        token_hash = hashlib.sha256(self.config.telegram_token.encode()).hexdigest()[:16]
+        webhook_path = f"/webhook/{token_hash}"
         webhook_url = f"{self.config.webhook_base_url}{webhook_path}"
 
         logger.info(f"Running bot in webhook mode on port {self.config.port}...")
-        logger.info(f"Webhook URL: {self.config.webhook_base_url}/webhook/***")
+        logger.info(f"Webhook path: /webhook/{token_hash}")
 
         application.run_webhook(
             listen=WEBHOOK_HOST,
