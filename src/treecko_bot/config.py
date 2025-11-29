@@ -2,7 +2,6 @@
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -17,6 +16,8 @@ class Config:
     google_credentials_path: str
     google_sheet_id: str
     database_path: str
+    webhook_base_url: str
+    port: int
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -30,12 +31,16 @@ class Config:
         )
         google_sheet_id = os.getenv("GOOGLE_SHEET_ID", "")
         database_path = os.getenv("DATABASE_PATH", "transactions.db")
+        webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "")
+        port = int(os.getenv("PORT", "8080"))
 
         return cls(
             telegram_token=telegram_token,
             google_credentials_path=google_credentials_path,
             google_sheet_id=google_sheet_id,
             database_path=database_path,
+            webhook_base_url=webhook_base_url,
+            port=port,
         )
 
 
