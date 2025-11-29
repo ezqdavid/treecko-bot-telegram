@@ -1,5 +1,6 @@
 """Telegram bot handlers."""
 
+import hashlib
 import logging
 import os
 
@@ -18,6 +19,9 @@ from .pdf_parser import MercadoPagoPDFParser
 from .sheets import GoogleSheetsManager
 
 logger = logging.getLogger(__name__)
+
+# Default host for webhook server
+WEBHOOK_HOST = "0.0.0.0"
 
 
 class TreeckoBot:
@@ -200,6 +204,23 @@ class TreeckoBot:
                 "Please make sure this is a valid MercadoPago receipt."
             )
 
+    async def handle_text(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle text messages.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        text = update.message.text
+        response = (
+            f"📝 Recibí tu mensaje: \"{text}\"\n\n"
+            "Para procesar una transacción, envíame un PDF de MercadoPago.\n"
+            "Usa /help para ver los comandos disponibles."
+        )
+        await update.message.reply_text(response)
+
     def create_application(self) -> Application:
         """Create and configure the Telegram application.
 
@@ -208,18 +229,61 @@ class TreeckoBot:
         """
         application = Application.builder().token(self.config.telegram_token).build()
 
+        # Command handlers
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("status", self.status))
 
+        # Document handler for PDFs
         application.add_handler(
             MessageHandler(filters.Document.ALL, self.handle_document)
+        )
+
+        # Text message handler (excluding commands)
+        application.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text)
         )
 
         return application
 
     def run(self) -> None:
-        """Run the bot."""
+        """Run the bot using webhook mode (if WEBHOOK_BASE_URL is set) or polling mode."""
         logger.info("Starting Treecko Finance Bot...")
         application = self.create_application()
+
+        if self.config.webhook_base_url:
+            self._run_webhook(application)
+        else:
+            self._run_polling(application)
+
+    def _run_polling(self, application: Application) -> None:
+        """Run the bot using long polling (for local development without tunnel).
+
+        Args:
+            application: The Telegram Application instance.
+        """
+        logger.info("Running bot in polling mode...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    def _run_webhook(self, application: Application) -> None:
+        """Run the bot using webhook mode (for Cloud Run deployment).
+
+        Args:
+            application: The Telegram Application instance.
+        """
+        # Build webhook URL using a hash of the token for security
+        # This prevents the full token from appearing in server logs
+        token_hash = hashlib.sha256(self.config.telegram_token.encode()).hexdigest()[:16]
+        webhook_path = f"/webhook/{token_hash}"
+        webhook_url = f"{self.config.webhook_base_url}{webhook_path}"
+
+        logger.info(f"Running bot in webhook mode on port {self.config.port}...")
+        logger.info(f"Webhook path: /webhook/{token_hash}")
+
+        application.run_webhook(
+            listen=WEBHOOK_HOST,
+            port=self.config.port,
+            url_path=webhook_path,
+            webhook_url=webhook_url,
+            allowed_updates=Update.ALL_TYPES,
+        )

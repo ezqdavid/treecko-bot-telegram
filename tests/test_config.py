@@ -12,17 +12,23 @@ def test_config_from_env():
     os.environ["TELEGRAM_BOT_TOKEN"] = "test_token"
     os.environ["GOOGLE_SHEET_ID"] = "test_sheet_id"
     os.environ["DATABASE_PATH"] = "test.db"
+    os.environ["WEBHOOK_BASE_URL"] = "https://test.example.com"
+    os.environ["PORT"] = "9000"
 
     config = Config.from_env()
 
     assert config.telegram_token == "test_token"
     assert config.google_sheet_id == "test_sheet_id"
     assert config.database_path == "test.db"
+    assert config.webhook_base_url == "https://test.example.com"
+    assert config.port == 9000
 
     # Clean up
     del os.environ["TELEGRAM_BOT_TOKEN"]
     del os.environ["GOOGLE_SHEET_ID"]
     del os.environ["DATABASE_PATH"]
+    del os.environ["WEBHOOK_BASE_URL"]
+    del os.environ["PORT"]
 
 
 def test_config_missing_token():
@@ -37,11 +43,31 @@ def test_config_missing_token():
 def test_config_defaults():
     """Test default configuration values."""
     os.environ["TELEGRAM_BOT_TOKEN"] = "test_token"
+    # Ensure webhook-related vars are not set
+    if "WEBHOOK_BASE_URL" in os.environ:
+        del os.environ["WEBHOOK_BASE_URL"]
+    if "PORT" in os.environ:
+        del os.environ["PORT"]
 
     config = Config.from_env()
 
     assert config.google_credentials_path == "credentials.json"
     assert config.database_path == "transactions.db"
+    assert config.webhook_base_url == ""
+    assert config.port == 8080
 
     # Clean up
     del os.environ["TELEGRAM_BOT_TOKEN"]
+
+
+def test_config_invalid_port():
+    """Test that invalid PORT raises ValueError with helpful message."""
+    os.environ["TELEGRAM_BOT_TOKEN"] = "test_token"
+    os.environ["PORT"] = "not_a_number"
+
+    with pytest.raises(ValueError, match="PORT must be a valid integer"):
+        Config.from_env()
+
+    # Clean up
+    del os.environ["TELEGRAM_BOT_TOKEN"]
+    del os.environ["PORT"]
