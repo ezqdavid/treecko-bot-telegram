@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > **Instructions for AI Agents**: When working on this repository, always review this section and propose improvements here. Add new improvement proposals under the appropriate priority section before implementing changes. Update the status of items as you work on them.
 
-### Evaluation Summary (as of 2024-11-30)
+### Evaluation Summary (as of November 2024)
 
 **Repository Status**: ✅ Healthy (16/16 tests passing)
 
@@ -91,7 +91,7 @@ When proposing new improvements, use this format:
 
 ---
 
-## [0.1.0] - 2024-11-XX
+## [0.1.0] - TBD
 
 ### Added
 - Initial release of Treecko Finance Bot
@@ -105,7 +105,7 @@ When proposing new improvements, use this format:
 - Environment-based configuration
 
 ### Technical Details
-- Built with python-telegram-bot v21.6+
+- Built with python-telegram-bot (v21.6 or later)
 - Uses pdfplumber for PDF text extraction
 - SQLAlchemy ORM for database operations
 - gspread for Google Sheets API integration
