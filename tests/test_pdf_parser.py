@@ -1,6 +1,5 @@
 """Tests for the PDF parser module."""
 
-from datetime import datetime
 
 import pytest
 

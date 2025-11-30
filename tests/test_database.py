@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from treecko_bot.database import DatabaseManager, Transaction
+from treecko_bot.database import DatabaseManager
 
 
 @pytest.fixture

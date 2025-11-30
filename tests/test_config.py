@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from treecko_bot.config import Config, get_config
+from treecko_bot.config import Config
 
 
 def test_config_from_env():
