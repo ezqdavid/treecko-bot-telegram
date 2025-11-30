@@ -181,6 +181,91 @@ If you identify potential improvements while working:
 
 ---
 
+## Coding Style
+
+This project follows standard Python conventions:
+
+- **Naming**: Use `snake_case` for functions and variables, `PascalCase` for classes
+- **Strings**: Prefer double quotes for strings (existing code uses double quotes)
+- **Imports**: Group imports: standard library, third-party, local (separated by blank lines)
+- **Type hints**: Use type hints where practical, especially for function signatures
+- **Error handling**: Use specific exception types rather than bare `except:` clauses
+- **Async**: Bot handlers use `async/await` patterns from `python-telegram-bot`
+
+### Example Code Style
+
+```python
+from telegram import Update
+from telegram.ext import ContextTypes
+
+from treecko_bot.database import DatabaseManager
+
+
+class MyBot:
+    """Example bot class with proper type hints."""
+
+    def __init__(self, db_path: str):
+        self.db = DatabaseManager(db_path)
+        self.sheets: GoogleSheetsManager | None = None  # Union syntax for optional
+
+    async def handle_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle a bot command with proper type hints."""
+        if update.message is None:
+            return
+        await update.message.reply_text("Hello!")
+```
+
+---
+
+## Security Guidelines
+
+- **Never commit secrets**: Do not commit `.env` files, `credentials.json`, or API keys
+- **Use environment variables**: All sensitive configuration goes in environment variables
+- **Validate inputs**: PDF files from users should be handled carefully
+- **SQLite paths**: Database files are gitignored - never commit `transactions.db`
+- **Credentials**: Google service account credentials are stored outside the repo
+
+---
+
+## Testing Best Practices
+
+- **Test file naming**: Use `test_<module>.py` pattern matching the source module
+- **Test isolation**: Each test should be independent and not depend on other tests
+- **Fixtures**: Use pytest fixtures for common setup (e.g., database instances)
+- **Temporary files**: Use `tempfile` module for any files created during tests
+- **No external dependencies**: Tests should not require network access or real credentials
+
+### Example Test Pattern
+
+```python
+import os
+import tempfile
+
+import pytest
+
+from treecko_bot.database import DatabaseManager
+
+
+@pytest.fixture
+def db():
+    """Create a temporary database for testing."""
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    manager = DatabaseManager(db_path)
+    yield manager
+    os.unlink(db_path)
+
+
+def test_example(db):
+    """Test should use fixtures and clean up temporary resources."""
+    # Test logic here using the db fixture
+    assert db is not None
+```
+
+---
+
 ## Trust These Instructions
 
 These instructions have been validated by running the actual commands. If build or test commands fail, first verify the environment setup steps above before searching for alternatives.

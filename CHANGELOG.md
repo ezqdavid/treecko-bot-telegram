@@ -82,6 +82,7 @@ When proposing new improvements, use this format:
 
 ### Added
 - Initial CHANGELOG.md with improvement roadmap for future agents
+- Enhanced `.github/copilot-instructions.md` with coding style, security guidelines, and testing best practices sections
 
 ### Changed
 - N/A
