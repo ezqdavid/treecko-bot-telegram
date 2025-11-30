@@ -1,7 +1,6 @@
 """Telegram bot handlers."""
 
 import hashlib
-import logging
 import os
 import time
 
@@ -17,10 +16,11 @@ from telegram.ext import (
 from .config import Config
 from .database import DatabaseManager
 from .health import HealthCheckServer, HealthStatus
+from .logging_config import get_logger
 from .pdf_parser import MercadoPagoPDFParser
 from .sheets import GoogleSheetsManager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Default host for webhook server
 WEBHOOK_HOST = "0.0.0.0"
