@@ -13,11 +13,13 @@ from telegram.ext import (
     filters,
 )
 
+from .authorization import UserAuthorization
 from .config import Config
 from .database import DatabaseManager
 from .health import HealthCheckServer, HealthStatus
 from .logging_config import get_logger
 from .pdf_parser import MercadoPagoPDFParser
+from .rate_limiter import RateLimiter
 from .sheets import GoogleSheetsManager
 
 logger = get_logger(__name__)
@@ -33,7 +35,7 @@ PDF_MAGIC_BYTES = b"%PDF"  # PDF files start with this signature
 class TreeckoBot:
     """Telegram bot for personal finance management."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config) -> None:
         """Initialize the bot.
 
         Args:
@@ -44,6 +46,8 @@ class TreeckoBot:
         self.pdf_parser = MercadoPagoPDFParser()
         self.sheets: GoogleSheetsManager | None = None
         self._health_server: HealthCheckServer | None = None
+        self.rate_limiter = RateLimiter(config.rate_limit_config)
+        self.authorization = UserAuthorization(config.auth_config)
 
         if config.google_sheet_id and config.google_credentials_path:
             if os.path.exists(config.google_credentials_path):
@@ -68,6 +72,45 @@ class TreeckoBot:
             sheets_configured=self.sheets is not None and self.sheets.is_configured(),
         )
 
+    async def _check_access(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> bool:
+        """Check authorization and rate limiting for a request.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+
+        Returns:
+            True if access is granted, False otherwise.
+        """
+        if not update.effective_user:
+            return False
+
+        user_id = update.effective_user.id
+
+        # Check authorization
+        if not self.authorization.is_authorized(user_id):
+            message = self.authorization.get_unauthorized_message()
+            if update.message:
+                await update.message.reply_text(message, parse_mode="Markdown")
+            logger.warning("Unauthorized access attempt", user_id=user_id)
+            return False
+
+        # Check rate limiting
+        if not self.rate_limiter.check_and_record(user_id):
+            retry_after = self.rate_limiter.get_retry_after(user_id)
+            message = (
+                "⏳ *Rate Limited*\n\n"
+                f"You're making requests too quickly.\n"
+                f"Please wait {int(retry_after)} seconds before trying again."
+            )
+            if update.message:
+                await update.message.reply_text(message, parse_mode="Markdown")
+            return False
+
+        return True
+
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle the /start command.
 
@@ -75,6 +118,9 @@ class TreeckoBot:
             update: Telegram update object.
             context: Telegram context object.
         """
+        if not await self._check_access(update, context):
+            return
+
         welcome_message = (
             "🌿 *Welcome to Treecko Finance Bot!*\n\n"
             "I'm your personal finance assistant. Here's what I can do:\n\n"
@@ -100,6 +146,9 @@ class TreeckoBot:
             update: Telegram update object.
             context: Telegram context object.
         """
+        if not await self._check_access(update, context):
+            return
+
         help_text = (
             "🌿 *Treecko Finance Bot Help*\n\n"
             "*How to use:*\n"
@@ -124,6 +173,9 @@ class TreeckoBot:
             update: Telegram update object.
             context: Telegram context object.
         """
+        if not await self._check_access(update, context):
+            return
+
         db_status = "✅ Connected" if self.db else "❌ Not configured"
         sheets_status = (
             "✅ Configured" if self.sheets and self.sheets.is_configured() else "⚠️ Not configured"
@@ -145,6 +197,9 @@ class TreeckoBot:
             update: Telegram update object.
             context: Telegram context object.
         """
+        if not await self._check_access(update, context):
+            return
+
         document = update.message.document
 
         if not document.file_name.lower().endswith(".pdf"):
@@ -251,6 +306,9 @@ class TreeckoBot:
             update: Telegram update object.
             context: Telegram context object.
         """
+        if not await self._check_access(update, context):
+            return
+
         text = update.message.text
         response = (
             f"📝 Recibí tu mensaje: \"{text}\"\n\n"

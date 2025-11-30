@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from treecko_bot.authorization import AuthorizationMode
 from treecko_bot.config import Config
 
 # Valid test token that matches the expected format: <bot_id>:<hash>
@@ -248,3 +249,98 @@ class TestConfigValidation:
 
         del os.environ["TELEGRAM_BOT_TOKEN"]
         del os.environ["DATABASE_PATH"]
+
+
+class TestRateLimitConfig:
+    """Tests for rate limit configuration loading."""
+
+    def test_rate_limit_defaults(self):
+        """Test default rate limit configuration."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+
+        config = Config.from_env()
+
+        assert config.rate_limit_config.enabled is True
+        assert config.rate_limit_config.max_requests == 10
+        assert config.rate_limit_config.window_seconds == 60
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+
+    def test_rate_limit_custom_values(self):
+        """Test custom rate limit configuration."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+        os.environ["RATE_LIMIT_ENABLED"] = "false"
+        os.environ["RATE_LIMIT_MAX_REQUESTS"] = "5"
+        os.environ["RATE_LIMIT_WINDOW_SECONDS"] = "30"
+
+        config = Config.from_env()
+
+        assert config.rate_limit_config.enabled is False
+        assert config.rate_limit_config.max_requests == 5
+        assert config.rate_limit_config.window_seconds == 30
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+        del os.environ["RATE_LIMIT_ENABLED"]
+        del os.environ["RATE_LIMIT_MAX_REQUESTS"]
+        del os.environ["RATE_LIMIT_WINDOW_SECONDS"]
+
+    def test_rate_limit_invalid_values_use_defaults(self):
+        """Test that invalid rate limit values fall back to defaults."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+        os.environ["RATE_LIMIT_MAX_REQUESTS"] = "invalid"
+        os.environ["RATE_LIMIT_WINDOW_SECONDS"] = "-5"
+
+        config = Config.from_env()
+
+        assert config.rate_limit_config.max_requests == 10  # default
+        assert config.rate_limit_config.window_seconds == 60  # default
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+        del os.environ["RATE_LIMIT_MAX_REQUESTS"]
+        del os.environ["RATE_LIMIT_WINDOW_SECONDS"]
+
+
+class TestAuthorizationConfig:
+    """Tests for authorization configuration loading."""
+
+    def test_auth_defaults(self):
+        """Test default authorization configuration."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+
+        config = Config.from_env()
+
+        assert config.auth_config.mode == AuthorizationMode.OPEN
+        assert config.auth_config.admin_user_ids == set()
+        assert config.auth_config.whitelisted_user_ids == set()
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+
+    def test_auth_whitelist_mode(self):
+        """Test whitelist authorization configuration."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+        os.environ["AUTH_MODE"] = "whitelist"
+        os.environ["AUTH_WHITELIST_IDS"] = "123,456,789"
+
+        config = Config.from_env()
+
+        assert config.auth_config.mode == AuthorizationMode.WHITELIST
+        assert config.auth_config.whitelisted_user_ids == {123, 456, 789}
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+        del os.environ["AUTH_MODE"]
+        del os.environ["AUTH_WHITELIST_IDS"]
+
+    def test_auth_admin_only_mode(self):
+        """Test admin_only authorization configuration."""
+        os.environ["TELEGRAM_BOT_TOKEN"] = VALID_TEST_TOKEN
+        os.environ["AUTH_MODE"] = "admin_only"
+        os.environ["AUTH_ADMIN_IDS"] = "111,222"
+
+        config = Config.from_env()
+
+        assert config.auth_config.mode == AuthorizationMode.ADMIN_ONLY
+        assert config.auth_config.admin_user_ids == {111, 222}
+
+        del os.environ["TELEGRAM_BOT_TOKEN"]
+        del os.environ["AUTH_MODE"]
+        del os.environ["AUTH_ADMIN_IDS"]
