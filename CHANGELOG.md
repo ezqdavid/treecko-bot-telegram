@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Evaluation Summary (as of November 2024)
 
-**Repository Status**: ✅ Healthy (38/38 tests passing)
+**Repository Status**: ✅ Healthy (82/82 tests passing)
 
 | Area | Status | Notes |
 |------|--------|-------|
@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Type Hints | ⚠️ Partial | Some functions lack type hints |
 | Error Handling | ⚠️ Basic | Could be more robust |
 | Input Validation | ✅ Added | PDF size and content validation |
+| Config Validation | ✅ Added | URL, port, token format validation |
+| Health Check | ✅ Added | /health endpoint for monitoring |
+| Logging | ✅ Enhanced | Structured logging with configurable levels |
 
 ---
 
@@ -46,8 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | M2 | Async Database Operations | Use async SQLAlchemy for better performance | 🔲 Proposed |
 | M3 | Rate Limiting | Add rate limiting to prevent abuse | 🔲 Proposed |
 | M4 | User Authorization | Add whitelist or admin-only mode | 🔲 Proposed |
-| M5 | Logging Improvements | Add structured logging with different levels | 🔲 Proposed |
-| M6 | Configuration Validation | Validate config values (URL format, port range, etc.) | 🔲 Proposed |
+| M5 | Logging Improvements | Add structured logging with different levels | ✅ Completed |
+| M6 | Configuration Validation | Validate config values (URL format, port range, etc.) | ✅ Completed |
 
 ### 🟢 Low Priority Improvements
 
@@ -59,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | L4 | Export Functionality | Add /export command to download CSV | 🔲 Proposed |
 | L5 | Multi-language Support | Support for English in addition to Spanish | 🔲 Proposed |
 | L6 | Category Management | Allow users to define custom categories | 🔲 Proposed |
-| L7 | Health Check Endpoint | Add /health endpoint for monitoring | 🔲 Proposed |
+| L7 | Health Check Endpoint | Add /health endpoint for monitoring | ✅ Completed |
 
 ### 📝 Improvement Proposal Template
 
@@ -90,10 +93,25 @@ When proposing new improvements, use this format:
 - PDF file size validation (max 10 MB limit)
 - PDF content validation (magic bytes check for valid PDF files)
 - pytest-asyncio dev dependency for async tests
+- Configuration validation for:
+  - Telegram bot token format validation
+  - Webhook URL format and scheme validation
+  - Port range validation (1-65535)
+  - Database path extension validation (.db, .sqlite, .sqlite3)
+- Health check HTTP endpoint (/health) for container monitoring
+  - Configurable via HEALTH_CHECK_PORT environment variable (default: 8081)
+  - Returns JSON with database and sheets configuration status
+  - Runs as a separate background server thread
+- Structured logging with configurable levels and formats
+  - LOG_LEVEL environment variable (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  - LOG_FORMAT environment variable (text, json)
+  - JSON formatter for structured log analysis
+  - Enhanced text formatter with extra context fields
 
 ### Changed
 - Updated code to pass ruff linting (modernized type hints, fixed imports, formatting)
 - Improved code quality with consistent style across all modules
+- Enhanced main.py to use structured logging
 
 ---
 

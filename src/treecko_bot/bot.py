@@ -3,6 +3,7 @@
 import hashlib
 import logging
 import os
+import time
 
 from telegram import Update
 from telegram.ext import (
@@ -15,6 +16,7 @@ from telegram.ext import (
 
 from .config import Config
 from .database import DatabaseManager
+from .health import HealthCheckServer, HealthStatus
 from .pdf_parser import MercadoPagoPDFParser
 from .sheets import GoogleSheetsManager
 
@@ -41,6 +43,7 @@ class TreeckoBot:
         self.db = DatabaseManager(config.database_path)
         self.pdf_parser = MercadoPagoPDFParser()
         self.sheets: GoogleSheetsManager | None = None
+        self._health_server: HealthCheckServer | None = None
 
         if config.google_sheet_id and config.google_credentials_path:
             if os.path.exists(config.google_credentials_path):
@@ -51,6 +54,19 @@ class TreeckoBot:
                 logger.warning(
                     f"Google credentials file not found: {config.google_credentials_path}"
                 )
+
+    def _get_health_status(self) -> HealthStatus:
+        """Get current health status for health check endpoint.
+
+        Returns:
+            HealthStatus object with current status.
+        """
+        return HealthStatus(
+            status="healthy",
+            timestamp=time.time(),
+            database_connected=self.db is not None,
+            sheets_configured=self.sheets is not None and self.sheets.is_configured(),
+        )
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle the /start command.
@@ -268,15 +284,36 @@ class TreeckoBot:
 
         return application
 
+    def _start_health_server(self) -> None:
+        """Start the health check server."""
+        self._health_server = HealthCheckServer(
+            port=self.config.health_check_port,
+            health_callback=self._get_health_status,
+        )
+        self._health_server.start()
+
+    def _stop_health_server(self) -> None:
+        """Stop the health check server."""
+        if self._health_server:
+            self._health_server.stop()
+            self._health_server = None
+
     def run(self) -> None:
         """Run the bot using webhook mode (if WEBHOOK_BASE_URL is set) or polling mode."""
         logger.info("Starting Treecko Finance Bot...")
-        application = self.create_application()
 
-        if self.config.webhook_base_url:
-            self._run_webhook(application)
-        else:
-            self._run_polling(application)
+        # Start health check server
+        self._start_health_server()
+
+        try:
+            application = self.create_application()
+
+            if self.config.webhook_base_url:
+                self._run_webhook(application)
+            else:
+                self._run_polling(application)
+        finally:
+            self._stop_health_server()
 
     def _run_polling(self, application: Application) -> None:
         """Run the bot using long polling (for local development without tunnel).

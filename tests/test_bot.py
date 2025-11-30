@@ -19,12 +19,13 @@ def config():
         db_path = f.name
 
     cfg = Config(
-        telegram_token="test_token",
+        telegram_token="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ_0123456",
         google_credentials_path="credentials.json",
         google_sheet_id="",
         database_path=db_path,
         webhook_base_url="",
         port=8080,
+        health_check_port=8081,
     )
     yield cfg
     if os.path.exists(db_path):
