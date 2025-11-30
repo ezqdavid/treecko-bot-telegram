@@ -91,7 +91,7 @@ class TestAuthorizationConfig:
     def test_from_env_values_handles_invalid_ids(self):
         """Test parsing handles invalid IDs gracefully."""
         config = AuthorizationConfig.from_env_values(
-            admin_ids_str="123, invalid, 456, , -1"
+            admin_ids_str="123, invalid, 456, , -1, 0"
         )
         assert config.admin_user_ids == {123, 456}
 

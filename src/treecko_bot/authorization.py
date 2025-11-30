@@ -68,7 +68,7 @@ class AuthorizationConfig:
         if admin_ids_str:
             for id_str in admin_ids_str.split(","):
                 id_str = id_str.strip()
-                if id_str.isdigit():
+                if id_str.isdigit() and int(id_str) > 0:
                     admin_ids.add(int(id_str))
 
         # Parse whitelist IDs
@@ -76,7 +76,7 @@ class AuthorizationConfig:
         if whitelist_ids_str:
             for id_str in whitelist_ids_str.split(","):
                 id_str = id_str.strip()
-                if id_str.isdigit():
+                if id_str.isdigit() and int(id_str) > 0:
                     whitelist_ids.add(int(id_str))
 
         # Enable authorization if not in OPEN mode
