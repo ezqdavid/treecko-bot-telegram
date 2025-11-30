@@ -2,12 +2,14 @@
 
 import os
 import tempfile
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from treecko_bot.bot import TreeckoBot
 from treecko_bot.config import Config
+from treecko_bot.pdf_parser import ParsedTransaction
 
 
 @pytest.fixture
@@ -160,11 +162,6 @@ class TestTreeckoBotDocumentHandler:
         )
         mock_context.bot = MagicMock()
         mock_context.bot.get_file = AsyncMock(return_value=mock_file)
-
-        # Mock PDF parser
-        from datetime import datetime
-
-        from treecko_bot.pdf_parser import ParsedTransaction
 
         mock_transaction = ParsedTransaction(
             transaction_id="TEST123",

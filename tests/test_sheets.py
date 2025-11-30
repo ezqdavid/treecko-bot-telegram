@@ -3,6 +3,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import gspread
 import pytest
 
 from treecko_bot.sheets import GoogleSheetsManager
@@ -166,8 +167,6 @@ class TestGoogleSheetsManagerClientAndSheet:
 
     def test_get_or_create_worksheet_creates_new(self, sheets_manager):
         """Test creating a new worksheet when it doesn't exist."""
-        import gspread
-
         mock_sheet = MagicMock()
         mock_new_worksheet = MagicMock()
         mock_sheet.worksheet = MagicMock(side_effect=gspread.WorksheetNotFound("Not found"))
