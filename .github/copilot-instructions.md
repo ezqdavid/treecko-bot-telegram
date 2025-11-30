@@ -79,6 +79,7 @@ treecko-bot-telegram/
 ├── requirements.txt           # Pinned dependencies
 ├── Dockerfile                 # Production container (python:3.12-slim)
 ├── .env.example               # Template for environment variables
+├── CHANGELOG.md               # Changelog and improvement roadmap for agents
 └── README.md                  # User documentation
 ```
 
@@ -91,6 +92,7 @@ treecko-bot-telegram/
 | `src/treecko_bot/main.py` | Application entry point |
 | `src/treecko_bot/config.py` | Environment variable loading |
 | `src/treecko_bot/bot.py` | Core bot logic (TreeckoBot class) |
+| `CHANGELOG.md` | Changelog and improvement roadmap (agents must update) |
 
 ---
 
@@ -147,6 +149,35 @@ Environment variables (set in `.env` or directly):
 1. Add to both `requirements.txt` (pinned version) and `pyproject.toml` (minimum version)
 2. Run `pip install -r requirements.txt` to validate
 3. Run tests to ensure compatibility
+
+---
+
+## Improvement Proposals (Required)
+
+**All agents must review and update `CHANGELOG.md` when working on this repository.**
+
+### Before Starting Work
+
+1. Read the "Improvement Roadmap" section in `CHANGELOG.md`
+2. Review existing proposals to avoid duplicates
+3. Update status of any items you plan to work on to "🔄 In Progress"
+
+### When Identifying Improvements
+
+If you identify potential improvements while working:
+
+1. Add new proposals to the appropriate priority section in `CHANGELOG.md`:
+   - 🔴 **High Priority**: Security, testing, CI/CD, critical bugs
+   - 🟡 **Medium Priority**: Performance, code quality, developer experience
+   - 🟢 **Low Priority**: New features, documentation, nice-to-haves
+
+2. Use the template provided in `CHANGELOG.md`
+
+### After Completing Work
+
+1. Update the status of implemented items to "✅ Completed"
+2. Add an entry under `[Unreleased]` section describing your changes
+3. Follow [Keep a Changelog](https://keepachangelog.com/) format
 
 ---
 
