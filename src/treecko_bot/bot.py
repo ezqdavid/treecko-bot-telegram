@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 # Default host for webhook server
 WEBHOOK_HOST = "0.0.0.0"
 
+# PDF validation constants
+MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB max file size
+PDF_MAGIC_BYTES = b"%PDF"  # PDF files start with this signature
+
 
 class TreeckoBot:
     """Telegram bot for personal finance management."""
@@ -133,11 +137,26 @@ class TreeckoBot:
             )
             return
 
+        # Validate file size before downloading
+        if document.file_size and document.file_size > MAX_PDF_SIZE_BYTES:
+            max_size_mb = MAX_PDF_SIZE_BYTES / (1024 * 1024)
+            await update.message.reply_text(
+                f"⚠️ File too large. Maximum allowed size is {max_size_mb:.0f} MB."
+            )
+            return
+
         await update.message.reply_text("📥 Downloading PDF...")
 
         try:
             file = await context.bot.get_file(document.file_id)
             pdf_bytes = await file.download_as_bytearray()
+
+            # Validate PDF content (magic bytes check)
+            if not bytes(pdf_bytes[:4]).startswith(PDF_MAGIC_BYTES):
+                await update.message.reply_text(
+                    "⚠️ Invalid PDF file. The file does not appear to be a valid PDF document."
+                )
+                return
 
             await update.message.reply_text("🔍 Analyzing transaction...")
 
@@ -171,7 +190,10 @@ class TreeckoBot:
                     merchant=transaction.merchant,
                     transaction_id=transaction.transaction_id,
                 )
-                sheets_status = "✅ Added to Google Sheets" if success else "⚠️ Failed to add to Google Sheets"
+                if success:
+                    sheets_status = "✅ Added to Google Sheets"
+                else:
+                    sheets_status = "⚠️ Failed to add to Google Sheets"
             else:
                 sheets_status = "⚠️ Google Sheets not configured"
 

@@ -1,7 +1,6 @@
 """SQLite database models and operations."""
 
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
@@ -53,11 +52,11 @@ class DatabaseManager:
         date: datetime,
         description: str,
         amount: float,
-        transaction_id: Optional[str] = None,
-        transaction_type: Optional[str] = None,
-        category: Optional[str] = None,
-        merchant: Optional[str] = None,
-        raw_text: Optional[str] = None,
+        transaction_id: str | None = None,
+        transaction_type: str | None = None,
+        category: str | None = None,
+        merchant: str | None = None,
+        raw_text: str | None = None,
     ) -> Transaction:
         """Add a new transaction to the database.
 
@@ -90,7 +89,7 @@ class DatabaseManager:
             session.refresh(transaction)
             return transaction
 
-    def get_transaction_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    def get_transaction_by_id(self, transaction_id: str) -> Transaction | None:
         """Get a transaction by its transaction ID.
 
         Args:

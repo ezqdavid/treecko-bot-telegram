@@ -4,7 +4,6 @@ import io
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 import pdfplumber
 
@@ -13,12 +12,12 @@ import pdfplumber
 class ParsedTransaction:
     """Parsed transaction data from a MercadoPago PDF."""
 
-    transaction_id: Optional[str]
+    transaction_id: str | None
     date: datetime
     description: str
     amount: float
     transaction_type: str  # "income" or "expense"
-    merchant: Optional[str]
+    merchant: str | None
     raw_text: str
 
 
@@ -98,7 +97,7 @@ class MercadoPagoPDFParser:
             raw_text=text,
         )
 
-    def _extract_transaction_id(self, text: str) -> Optional[str]:
+    def _extract_transaction_id(self, text: str) -> str | None:
         """Extract transaction ID from the text.
 
         Args:
@@ -296,7 +295,7 @@ class MercadoPagoPDFParser:
 
         return "MercadoPago Transaction"
 
-    def _extract_merchant(self, text: str) -> Optional[str]:
+    def _extract_merchant(self, text: str) -> str | None:
         """Extract merchant name from the text.
 
         Args:
