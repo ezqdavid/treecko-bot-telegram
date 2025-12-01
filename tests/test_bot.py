@@ -213,6 +213,115 @@ class TestTreeckoBotDocumentHandler:
         assert "Error" in last_call[0][0]
 
 
+class TestTreeckoBotReportCommand:
+    """Tests for TreeckoBot /report command handler."""
+
+    @pytest.mark.asyncio
+    async def test_report_command_default_period(self, bot, mock_update, mock_context):
+        """Test the /report command with default period (30 days)."""
+        mock_context.args = []
+
+        await bot.report(mock_update, mock_context)
+
+        mock_update.message.reply_text.assert_called_once()
+        call_args = mock_update.message.reply_text.call_args
+        assert "Transaction Report" in call_args[0][0]
+        assert "last 30 days" in call_args[0][0]
+        assert call_args[1]["parse_mode"] == "Markdown"
+
+    @pytest.mark.asyncio
+    async def test_report_command_week_period(self, bot, mock_update, mock_context):
+        """Test the /report command with week period."""
+        mock_context.args = ["week"]
+
+        await bot.report(mock_update, mock_context)
+
+        call_args = mock_update.message.reply_text.call_args
+        assert "last 7 days" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_report_command_year_period(self, bot, mock_update, mock_context):
+        """Test the /report command with year period."""
+        mock_context.args = ["year"]
+
+        await bot.report(mock_update, mock_context)
+
+        call_args = mock_update.message.reply_text.call_args
+        assert "last year" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_report_command_all_period(self, bot, mock_update, mock_context):
+        """Test the /report command with all time period."""
+        mock_context.args = ["all"]
+
+        await bot.report(mock_update, mock_context)
+
+        call_args = mock_update.message.reply_text.call_args
+        assert "all time" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_report_command_shows_summary(self, bot, mock_update, mock_context):
+        """Test the /report command shows transaction summary data."""
+        mock_context.args = []
+
+        # Add some test transactions
+        bot.db.add_transaction(
+            date=datetime.now(),
+            description="Test income",
+            amount=1000.00,
+            transaction_type="income",
+        )
+        bot.db.add_transaction(
+            date=datetime.now(),
+            description="Test expense",
+            amount=300.00,
+            transaction_type="expense",
+        )
+
+        await bot.report(mock_update, mock_context)
+
+        call_args = mock_update.message.reply_text.call_args
+        response = call_args[0][0]
+        assert "Income" in response
+        assert "Expenses" in response
+        assert "Net Balance" in response
+        assert "Total Transactions" in response
+
+
+class TestTreeckoBotExportCommand:
+    """Tests for TreeckoBot /export command handler."""
+
+    @pytest.mark.asyncio
+    async def test_export_command_no_transactions(self, bot, mock_update, mock_context):
+        """Test the /export command when there are no transactions."""
+        await bot.export(mock_update, mock_context)
+
+        mock_update.message.reply_text.assert_called_once()
+        call_args = mock_update.message.reply_text.call_args
+        assert "No transactions to export" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_export_command_with_transactions(self, bot, mock_update, mock_context):
+        """Test the /export command with transactions."""
+        mock_update.message.reply_document = AsyncMock()
+
+        # Add test transaction
+        bot.db.add_transaction(
+            date=datetime.now(),
+            description="Test transaction",
+            amount=100.00,
+            transaction_type="expense",
+        )
+
+        await bot.export(mock_update, mock_context)
+
+        # Should call reply_document instead of reply_text
+        mock_update.message.reply_document.assert_called_once()
+        call_args = mock_update.message.reply_document.call_args
+        assert "Exported 1 transactions" in call_args[1]["caption"]
+        assert call_args[1]["parse_mode"] == "Markdown"
+
+
 class TestTreeckoBotApplication:
     """Tests for TreeckoBot application creation."""
 

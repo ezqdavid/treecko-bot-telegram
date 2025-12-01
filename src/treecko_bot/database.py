@@ -126,6 +126,70 @@ class DatabaseManager:
         """
         return self.get_transaction_by_id(transaction_id) is not None
 
+    def get_transactions_by_date_range(
+        self, start_date: datetime, end_date: datetime
+    ) -> list[Transaction]:
+        """Get transactions within a date range.
+
+        Args:
+            start_date: Start of the date range (inclusive).
+            end_date: End of the date range (inclusive).
+
+        Returns:
+            List of transactions within the date range.
+        """
+        with self.get_session() as session:
+            return (
+                session.query(Transaction)
+                .filter(Transaction.date >= start_date)
+                .filter(Transaction.date <= end_date)
+                .order_by(Transaction.date.desc())
+                .all()
+            )
+
+    def get_transaction_summary(
+        self, start_date: datetime | None = None, end_date: datetime | None = None
+    ) -> dict:
+        """Get a summary of transactions.
+
+        Args:
+            start_date: Optional start date filter.
+            end_date: Optional end date filter.
+
+        Returns:
+            Dictionary with summary statistics.
+        """
+        with self.get_session() as session:
+            query = session.query(Transaction)
+
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+
+            transactions = query.all()
+
+            total_income = sum(
+                t.amount for t in transactions if t.transaction_type == "income"
+            )
+            total_expense = sum(
+                t.amount for t in transactions if t.transaction_type == "expense"
+            )
+            transaction_count = len(transactions)
+
+            return {
+                "total_income": total_income,
+                "total_expense": total_expense,
+                "net_balance": total_income - total_expense,
+                "transaction_count": transaction_count,
+                "income_count": sum(
+                    1 for t in transactions if t.transaction_type == "income"
+                ),
+                "expense_count": sum(
+                    1 for t in transactions if t.transaction_type == "expense"
+                ),
+            }
+
 
 class AsyncDatabaseManager:
     """Async manager class for database operations.

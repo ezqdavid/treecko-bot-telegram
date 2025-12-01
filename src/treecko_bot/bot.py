@@ -1,10 +1,13 @@
 """Telegram bot handlers."""
 
+import csv
 import hashlib
+import io
 import os
 import time
+from datetime import datetime, timedelta
 
-from telegram import Update
+from telegram import InputFile, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -132,7 +135,9 @@ class TreeckoBot:
             "📊 *Commands*\n"
             "/start - Show this welcome message\n"
             "/help - Get help\n"
-            "/status - Check bot status\n\n"
+            "/status - Check bot status\n"
+            "/report - View transaction summary\n"
+            "/export - Download transactions as CSV\n\n"
             "Just send me a PDF to get started! 📤"
         )
         await update.message.reply_text(welcome_message, parse_mode="Markdown")
@@ -158,7 +163,14 @@ class TreeckoBot:
             "*Commands:*\n"
             "/start - Welcome message\n"
             "/help - This help message\n"
-            "/status - Check configuration status\n\n"
+            "/status - Check configuration status\n"
+            "/report - View transaction summary\n"
+            "/export - Download transactions as CSV\n\n"
+            "*Report Options:*\n"
+            "`/report week` - Last 7 days\n"
+            "`/report month` - Last 30 days (default)\n"
+            "`/report year` - Last 365 days\n"
+            "`/report all` - All time\n\n"
             "*Tips:*\n"
             "• Make sure the PDF is readable\n"
             "• One PDF per message works best\n"
@@ -187,6 +199,115 @@ class TreeckoBot:
             f"📊 *Google Sheets:* {sheets_status}\n"
         )
         await update.message.reply_text(status_text, parse_mode="Markdown")
+
+    async def report(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle the /report command for transaction summaries.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        # Parse optional date range from arguments
+        args = context.args or []
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)  # Default: last 30 days
+        period_text = "last 30 days"
+
+        if args:
+            period = args[0].lower()
+            if period == "week":
+                start_date = end_date - timedelta(days=7)
+                period_text = "last 7 days"
+            elif period == "month":
+                start_date = end_date - timedelta(days=30)
+                period_text = "last 30 days"
+            elif period == "year":
+                start_date = end_date - timedelta(days=365)
+                period_text = "last year"
+            elif period == "all":
+                start_date = None
+                period_text = "all time"
+
+        summary = self.db.get_transaction_summary(start_date, end_date)
+
+        # Format amounts with signs
+        income_str = f"+${summary['total_income']:,.2f}"
+        expense_str = f"-${summary['total_expense']:,.2f}"
+        net_sign = "+" if summary["net_balance"] >= 0 else ""
+        net_str = f"{net_sign}${summary['net_balance']:,.2f}"
+
+        report_text = (
+            "📊 *Transaction Report*\n"
+            f"📅 Period: {period_text}\n\n"
+            f"💰 *Income:* {income_str} ({summary['income_count']} transactions)\n"
+            f"💸 *Expenses:* {expense_str} ({summary['expense_count']} transactions)\n"
+            f"📈 *Net Balance:* {net_str}\n\n"
+            f"📝 *Total Transactions:* {summary['transaction_count']}\n\n"
+            "_Use /report week, /report month, /report year, or /report all_"
+        )
+        await update.message.reply_text(report_text, parse_mode="Markdown")
+
+    async def export(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle the /export command to download transactions as CSV.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        transactions = self.db.get_all_transactions()
+
+        if not transactions:
+            await update.message.reply_text(
+                "📭 No transactions to export.\n"
+                "Send me a MercadoPago PDF to get started!"
+            )
+            return
+
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Write header
+        writer.writerow([
+            "Date",
+            "Description",
+            "Amount",
+            "Type",
+            "Category",
+            "Merchant",
+            "Transaction ID",
+            "Created At",
+        ])
+
+        # Write transactions
+        for tx in transactions:
+            writer.writerow([
+                tx.date.strftime("%Y-%m-%d %H:%M:%S") if tx.date else "",
+                tx.description or "",
+                tx.amount,
+                tx.transaction_type or "",
+                tx.category or "",
+                tx.merchant or "",
+                tx.transaction_id or "",
+                tx.created_at.strftime("%Y-%m-%d %H:%M:%S") if tx.created_at else "",
+            ])
+
+        # Send as file
+        csv_bytes = output.getvalue().encode("utf-8")
+        csv_file = io.BytesIO(csv_bytes)
+        csv_file.name = f"transactions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+        await update.message.reply_document(
+            document=InputFile(csv_file, filename=csv_file.name),
+            caption=f"📥 *Exported {len(transactions)} transactions*",
+            parse_mode="Markdown",
+        )
 
     async def handle_document(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -329,6 +450,8 @@ class TreeckoBot:
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("status", self.status))
+        application.add_handler(CommandHandler("report", self.report))
+        application.add_handler(CommandHandler("export", self.export))
 
         # Document handler for PDFs
         application.add_handler(

@@ -59,10 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | ID | Improvement | Description | Status |
 |----|-------------|-------------|--------|
-| L1 | Documentation | Add docstrings to all public methods | 🔲 Proposed |
-| L2 | Contributing Guide | Create CONTRIBUTING.md | 🔲 Proposed |
-| L3 | Transaction Reports | Add /report command for summaries | 🔲 Proposed |
-| L4 | Export Functionality | Add /export command to download CSV | 🔲 Proposed |
+| L1 | Documentation | Add docstrings to all public methods | ✅ Completed |
+| L2 | Contributing Guide | Create CONTRIBUTING.md | ✅ Completed |
+| L3 | Transaction Reports | Add /report command for summaries | ✅ Completed |
+| L4 | Export Functionality | Add /export command to download CSV | ✅ Completed |
 | L5 | Multi-language Support | Support for English in addition to Spanish | 🔲 Proposed |
 | L6 | Category Management | Allow users to define custom categories | 🔲 Proposed |
 | L7 | Health Check Endpoint | Add /health endpoint for monitoring | ✅ Completed |
@@ -124,12 +124,23 @@ When proposing new improvements, use this format:
   - AUTH_WHITELIST_IDS: Comma-separated list of whitelisted user IDs
   - Admin users bypass whitelist restrictions
 - Comprehensive type hints across all modules
+- Transaction report command (/report) with date range options
+  - View summaries for week, month, year, or all time
+  - Shows income, expenses, net balance, and transaction counts
+- Export transactions command (/export) to download CSV
+  - Exports all transactions with date, description, amount, type, category, merchant, and transaction ID
+- CONTRIBUTING.md with guidelines for contributors
+  - Development setup instructions
+  - Testing guidelines
+  - Code style requirements
+  - PR submission process
 
 ### Changed
 - Updated code to pass ruff linting (modernized type hints, fixed imports, formatting)
 - Improved code quality with consistent style across all modules
 - Enhanced main.py to use structured logging
 - Bot handlers now check authorization and rate limiting before processing requests
+- Updated /help and /start commands to show new /report and /export commands
 
 ---
 
