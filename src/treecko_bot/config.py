@@ -2,10 +2,13 @@
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
+
+from .authorization import AuthorizationConfig
+from .rate_limiter import RateLimitConfig
 
 load_dotenv()
 
@@ -13,6 +16,10 @@ load_dotenv()
 MIN_PORT = 1
 MAX_PORT = 65535
 VALID_DATABASE_EXTENSIONS = (".db", ".sqlite", ".sqlite3")
+
+# Default rate limiting values
+DEFAULT_RATE_LIMIT_MAX_REQUESTS = 10
+DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60
 
 
 @dataclass
@@ -26,6 +33,8 @@ class Config:
     webhook_base_url: str
     port: int
     health_check_port: int
+    rate_limit_config: RateLimitConfig = field(default_factory=RateLimitConfig)
+    auth_config: AuthorizationConfig = field(default_factory=AuthorizationConfig)
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -72,6 +81,12 @@ class Config:
         # Validate health check port range
         cls._validate_port(health_check_port, "HEALTH_CHECK_PORT")
 
+        # Rate limiting configuration
+        rate_limit_config = cls._load_rate_limit_config()
+
+        # Authorization configuration
+        auth_config = cls._load_auth_config()
+
         return cls(
             telegram_token=telegram_token,
             google_credentials_path=google_credentials_path,
@@ -80,6 +95,61 @@ class Config:
             webhook_base_url=webhook_base_url,
             port=port,
             health_check_port=health_check_port,
+            rate_limit_config=rate_limit_config,
+            auth_config=auth_config,
+        )
+
+    @classmethod
+    def _load_rate_limit_config(cls) -> RateLimitConfig:
+        """Load rate limit configuration from environment variables.
+
+        Returns:
+            RateLimitConfig instance.
+        """
+        enabled_str = os.getenv("RATE_LIMIT_ENABLED", "true").lower()
+        enabled = enabled_str in ("true", "1", "yes")
+
+        max_requests_str = os.getenv(
+            "RATE_LIMIT_MAX_REQUESTS", str(DEFAULT_RATE_LIMIT_MAX_REQUESTS)
+        )
+        try:
+            max_requests = int(max_requests_str)
+            if max_requests < 1:
+                max_requests = DEFAULT_RATE_LIMIT_MAX_REQUESTS
+        except ValueError:
+            max_requests = DEFAULT_RATE_LIMIT_MAX_REQUESTS
+
+        window_seconds_str = os.getenv(
+            "RATE_LIMIT_WINDOW_SECONDS", str(DEFAULT_RATE_LIMIT_WINDOW_SECONDS)
+        )
+        try:
+            window_seconds = int(window_seconds_str)
+            if window_seconds < 1:
+                window_seconds = DEFAULT_RATE_LIMIT_WINDOW_SECONDS
+        except ValueError:
+            window_seconds = DEFAULT_RATE_LIMIT_WINDOW_SECONDS
+
+        return RateLimitConfig(
+            max_requests=max_requests,
+            window_seconds=window_seconds,
+            enabled=enabled,
+        )
+
+    @classmethod
+    def _load_auth_config(cls) -> AuthorizationConfig:
+        """Load authorization configuration from environment variables.
+
+        Returns:
+            AuthorizationConfig instance.
+        """
+        mode_str = os.getenv("AUTH_MODE", "open")
+        admin_ids_str = os.getenv("AUTH_ADMIN_IDS", "")
+        whitelist_ids_str = os.getenv("AUTH_WHITELIST_IDS", "")
+
+        return AuthorizationConfig.from_env_values(
+            mode_str=mode_str,
+            admin_ids_str=admin_ids_str,
+            whitelist_ids_str=whitelist_ids_str,
         )
 
     @staticmethod

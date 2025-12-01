@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Evaluation Summary (as of November 2024)
 
-**Repository Status**: ✅ Healthy (82/82 tests passing)
+**Repository Status**: ✅ Healthy (136/136 tests passing)
 
 | Area | Status | Notes |
 |------|--------|-------|
@@ -22,12 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Code Quality | ✅ Linting | Ruff configured and passing |
 | CI/CD | ✅ Configured | GitHub Actions for lint + test |
 | Documentation | ✅ Good | README is comprehensive |
-| Type Hints | ⚠️ Partial | Some functions lack type hints |
+| Type Hints | ✅ Complete | All modules have type hints |
 | Error Handling | ⚠️ Basic | Could be more robust |
 | Input Validation | ✅ Added | PDF size and content validation |
 | Config Validation | ✅ Added | URL, port, token format validation |
 | Health Check | ✅ Added | /health endpoint for monitoring |
 | Logging | ✅ Enhanced | Structured logging with configurable levels |
+| Rate Limiting | ✅ Added | Configurable request rate limiting |
+| Authorization | ✅ Added | Whitelist and admin-only modes |
+| Async Database | ✅ Added | AsyncDatabaseManager for non-blocking ops |
 
 ---
 
@@ -45,10 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | ID | Improvement | Description | Status |
 |----|-------------|-------------|--------|
-| M1 | Type Annotations | Complete type hints across all modules | 🔲 Proposed |
-| M2 | Async Database Operations | Use async SQLAlchemy for better performance | 🔲 Proposed |
-| M3 | Rate Limiting | Add rate limiting to prevent abuse | 🔲 Proposed |
-| M4 | User Authorization | Add whitelist or admin-only mode | 🔲 Proposed |
+| M1 | Type Annotations | Complete type hints across all modules | ✅ Completed |
+| M2 | Async Database Operations | Use async SQLAlchemy for better performance | ✅ Completed |
+| M3 | Rate Limiting | Add rate limiting to prevent abuse | ✅ Completed |
+| M4 | User Authorization | Add whitelist or admin-only mode | ✅ Completed |
 | M5 | Logging Improvements | Add structured logging with different levels | ✅ Completed |
 | M6 | Configuration Validation | Validate config values (URL format, port range, etc.) | ✅ Completed |
 
@@ -107,11 +110,26 @@ When proposing new improvements, use this format:
   - LOG_FORMAT environment variable (text, json)
   - JSON formatter for structured log analysis
   - Enhanced text formatter with extra context fields
+- Async database operations (AsyncDatabaseManager) using aiosqlite
+  - Non-blocking database operations for use in async contexts
+  - Same API as synchronous DatabaseManager
+  - Added aiosqlite dependency
+- Rate limiting functionality to prevent abuse
+  - Configurable via RATE_LIMIT_ENABLED, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
+  - Default: 10 requests per 60 seconds
+  - Sliding window algorithm for accurate rate tracking
+- User authorization with multiple modes
+  - AUTH_MODE: open (default), whitelist, admin_only
+  - AUTH_ADMIN_IDS: Comma-separated list of admin user IDs
+  - AUTH_WHITELIST_IDS: Comma-separated list of whitelisted user IDs
+  - Admin users bypass whitelist restrictions
+- Comprehensive type hints across all modules
 
 ### Changed
 - Updated code to pass ruff linting (modernized type hints, fixed imports, formatting)
 - Improved code quality with consistent style across all modules
 - Enhanced main.py to use structured logging
+- Bot handlers now check authorization and rate limiting before processing requests
 
 ---
 

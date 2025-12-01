@@ -7,9 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from treecko_bot.authorization import AuthorizationConfig
 from treecko_bot.bot import TreeckoBot
 from treecko_bot.config import Config
 from treecko_bot.pdf_parser import ParsedTransaction
+from treecko_bot.rate_limiter import RateLimitConfig
 
 
 @pytest.fixture
@@ -26,6 +28,8 @@ def config():
         webhook_base_url="",
         port=8080,
         health_check_port=8081,
+        rate_limit_config=RateLimitConfig(enabled=False),  # Disable for tests
+        auth_config=AuthorizationConfig(enabled=False),  # Disable for tests
     )
     yield cfg
     if os.path.exists(db_path):
@@ -44,6 +48,8 @@ def mock_update():
     update = MagicMock()
     update.message = MagicMock()
     update.message.reply_text = AsyncMock()
+    update.effective_user = MagicMock()
+    update.effective_user.id = 123456789
     return update
 
 
