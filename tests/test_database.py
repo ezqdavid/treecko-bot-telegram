@@ -84,6 +84,92 @@ def test_get_all_transactions(db):
     assert len(all_tx) == 2
 
 
+def test_get_transactions_by_date_range(db):
+    """Test getting transactions within a date range."""
+    db.add_transaction(
+        date=datetime(2024, 11, 1),
+        description="Transaction 1",
+        amount=100.00,
+    )
+    db.add_transaction(
+        date=datetime(2024, 11, 15),
+        description="Transaction 2",
+        amount=200.00,
+    )
+    db.add_transaction(
+        date=datetime(2024, 11, 30),
+        description="Transaction 3",
+        amount=300.00,
+    )
+
+    # Get transactions from Nov 10-20
+    transactions = db.get_transactions_by_date_range(
+        datetime(2024, 11, 10), datetime(2024, 11, 20)
+    )
+    assert len(transactions) == 1
+    assert transactions[0].description == "Transaction 2"
+
+    # Get all transactions
+    all_tx = db.get_transactions_by_date_range(
+        datetime(2024, 11, 1), datetime(2024, 11, 30)
+    )
+    assert len(all_tx) == 3
+
+
+def test_get_transaction_summary(db):
+    """Test getting transaction summary statistics."""
+    db.add_transaction(
+        date=datetime(2024, 11, 15),
+        description="Income 1",
+        amount=1000.00,
+        transaction_type="income",
+    )
+    db.add_transaction(
+        date=datetime(2024, 11, 16),
+        description="Expense 1",
+        amount=300.00,
+        transaction_type="expense",
+    )
+    db.add_transaction(
+        date=datetime(2024, 11, 17),
+        description="Expense 2",
+        amount=200.00,
+        transaction_type="expense",
+    )
+
+    summary = db.get_transaction_summary()
+    assert summary["total_income"] == 1000.00
+    assert summary["total_expense"] == 500.00
+    assert summary["net_balance"] == 500.00
+    assert summary["transaction_count"] == 3
+    assert summary["income_count"] == 1
+    assert summary["expense_count"] == 2
+
+
+def test_get_transaction_summary_with_date_filter(db):
+    """Test getting transaction summary with date filter."""
+    db.add_transaction(
+        date=datetime(2024, 10, 15),
+        description="Old Income",
+        amount=500.00,
+        transaction_type="income",
+    )
+    db.add_transaction(
+        date=datetime(2024, 11, 15),
+        description="Recent Income",
+        amount=1000.00,
+        transaction_type="income",
+    )
+
+    # Only get November transactions
+    summary = db.get_transaction_summary(
+        start_date=datetime(2024, 11, 1),
+        end_date=datetime(2024, 11, 30)
+    )
+    assert summary["total_income"] == 1000.00
+    assert summary["transaction_count"] == 1
+
+
 class TestAsyncDatabaseManager:
     """Tests for the async database manager."""
 
