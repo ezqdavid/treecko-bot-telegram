@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | L3 | Transaction Reports | Add /report command for summaries | ✅ Completed |
 | L4 | Export Functionality | Add /export command to download CSV | ✅ Completed |
 | L5 | Multi-language Support | Support for English in addition to Spanish | 🔲 Proposed |
-| L6 | Category Management | Allow users to define custom categories | 🔲 Proposed |
+| L6 | Category Management | Allow users to define custom categories | ✅ Completed |
 | L7 | Health Check Endpoint | Add /health endpoint for monitoring | ✅ Completed |
 
 ### 📝 Improvement Proposal Template
@@ -88,6 +88,16 @@ When proposing new improvements, use this format:
 ## [Unreleased]
 
 ### Added
+- Category management feature for custom transaction categories
+  - Category model in database for storing user-defined categories
+  - Database methods for category CRUD operations (add, list, get, delete)
+  - Method to update transaction categories
+  - `/categories` command to list all categories
+  - `/addcategory` command to create new categories
+  - `/setcategory` command to assign category to transactions
+  - `/deletecategory` command to remove categories
+  - Comprehensive tests for category management (14 new tests)
+  - Updated `/help` and `/start` commands to include category commands
 - Initial CHANGELOG.md with improvement roadmap for future agents
 - GitHub Actions CI workflow for linting and testing on PRs and pushes (.github/workflows/ci.yml)
 - Ruff linting configuration in pyproject.toml

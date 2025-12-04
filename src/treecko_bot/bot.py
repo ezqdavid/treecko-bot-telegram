@@ -137,7 +137,8 @@ class TreeckoBot:
             "/help - Get help\n"
             "/status - Check bot status\n"
             "/report - View transaction summary\n"
-            "/export - Download transactions as CSV\n\n"
+            "/export - Download transactions as CSV\n"
+            "/categories - Manage custom categories\n\n"
             "Just send me a PDF to get started! 📤"
         )
         await update.message.reply_text(welcome_message, parse_mode="Markdown")
@@ -165,7 +166,11 @@ class TreeckoBot:
             "/help - This help message\n"
             "/status - Check configuration status\n"
             "/report - View transaction summary\n"
-            "/export - Download transactions as CSV\n\n"
+            "/export - Download transactions as CSV\n"
+            "/categories - List all categories\n"
+            "/addcategory - Add a new category\n"
+            "/setcategory - Set category for a transaction\n"
+            "/deletecategory - Delete a category\n\n"
             "*Report Options:*\n"
             "`/report week` - Last 7 days\n"
             "`/report month` - Last 30 days (default)\n"
@@ -308,6 +313,172 @@ class TreeckoBot:
             caption=f"📥 *Exported {len(transactions)} transactions*",
             parse_mode="Markdown",
         )
+
+    async def categories(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle the /categories command to list all categories.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        categories = self.db.get_all_categories()
+
+        if not categories:
+            await update.message.reply_text(
+                "📂 *No categories defined yet*\n\n"
+                "Use /addcategory to create a new category.\n"
+                "Example: `/addcategory Food`",
+                parse_mode="Markdown",
+            )
+            return
+
+        category_list = "\n".join([f"• {cat.name}" for cat in categories])
+        response = (
+            "📂 *Your Categories*\n\n"
+            f"{category_list}\n\n"
+            f"_Total: {len(categories)} categories_"
+        )
+        await update.message.reply_text(response, parse_mode="Markdown")
+
+    async def addcategory(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle the /addcategory command to create a new category.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "⚠️ Please provide a category name.\n\n"
+                "Usage: `/addcategory <name>`\n"
+                "Example: `/addcategory Food`",
+                parse_mode="Markdown",
+            )
+            return
+
+        category_name = " ".join(context.args)
+
+        try:
+            category = self.db.add_category(category_name)
+            await update.message.reply_text(
+                f"✅ Category *{category.name}* created successfully!",
+                parse_mode="Markdown",
+            )
+        except ValueError as e:
+            await update.message.reply_text(
+                f"⚠️ {str(e)}\n\nUse /categories to see existing categories.",
+                parse_mode="Markdown",
+            )
+        except Exception as e:
+            logger.error(f"Error creating category: {e}", exc_info=True)
+            await update.message.reply_text(
+                f"❌ Error creating category: {str(e)}",
+                parse_mode="Markdown",
+            )
+
+    async def setcategory(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle the /setcategory command to assign category to a transaction.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text(
+                "⚠️ Please provide transaction ID and category name.\n\n"
+                "Usage: `/setcategory <transaction_id> <category>`\n"
+                "Example: `/setcategory 5 Food`",
+                parse_mode="Markdown",
+            )
+            return
+
+        try:
+            transaction_id = int(context.args[0])
+        except ValueError:
+            await update.message.reply_text(
+                "⚠️ Transaction ID must be a number.\n\n"
+                "Use /export to see transaction IDs.",
+                parse_mode="Markdown",
+            )
+            return
+
+        category_name = " ".join(context.args[1:])
+
+        # Check if category exists
+        category = self.db.get_category_by_name(category_name)
+        if not category:
+            await update.message.reply_text(
+                f"⚠️ Category *{category_name}* does not exist.\n\n"
+                "Use /addcategory to create it first, or /categories to see existing categories.",
+                parse_mode="Markdown",
+            )
+            return
+
+        # Update transaction
+        success = self.db.update_transaction_category(transaction_id, category_name)
+        if success:
+            await update.message.reply_text(
+                f"✅ Transaction #{transaction_id} assigned to category *{category_name}*",
+                parse_mode="Markdown",
+            )
+        else:
+            await update.message.reply_text(
+                f"⚠️ Transaction #{transaction_id} not found.\n\n"
+                "Use /export to see transaction IDs.",
+                parse_mode="Markdown",
+            )
+
+    async def deletecategory(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle the /deletecategory command to remove a category.
+
+        Args:
+            update: Telegram update object.
+            context: Telegram context object.
+        """
+        if not await self._check_access(update, context):
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "⚠️ Please provide a category name.\n\n"
+                "Usage: `/deletecategory <name>`\n"
+                "Example: `/deletecategory Food`",
+                parse_mode="Markdown",
+            )
+            return
+
+        category_name = " ".join(context.args)
+
+        success = self.db.delete_category(category_name)
+        if success:
+            await update.message.reply_text(
+                f"✅ Category *{category_name}* deleted successfully!\n\n"
+                "Note: Existing transactions with this category will keep their category assignment.",
+                parse_mode="Markdown",
+            )
+        else:
+            await update.message.reply_text(
+                f"⚠️ Category *{category_name}* not found.\n\n"
+                "Use /categories to see existing categories.",
+                parse_mode="Markdown",
+            )
 
     async def handle_document(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -452,6 +623,10 @@ class TreeckoBot:
         application.add_handler(CommandHandler("status", self.status))
         application.add_handler(CommandHandler("report", self.report))
         application.add_handler(CommandHandler("export", self.export))
+        application.add_handler(CommandHandler("categories", self.categories))
+        application.add_handler(CommandHandler("addcategory", self.addcategory))
+        application.add_handler(CommandHandler("setcategory", self.setcategory))
+        application.add_handler(CommandHandler("deletecategory", self.deletecategory))
 
         # Document handler for PDFs
         application.add_handler(
