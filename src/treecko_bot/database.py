@@ -31,6 +31,16 @@ class Transaction(Base):
     created_at = Column(DateTime, default=_utc_now)
 
 
+class Category(Base):
+    """Category model for storing custom transaction categories."""
+
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=_utc_now)
+
+
 class DatabaseManager:
     """Manager class for database operations."""
 
@@ -190,6 +200,92 @@ class DatabaseManager:
                 ),
             }
 
+    def add_category(self, name: str) -> Category:
+        """Add a new category to the database.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            The created Category object.
+
+        Raises:
+            ValueError: If category already exists.
+        """
+        with self.get_session() as session:
+            # Check if category already exists
+            existing = session.query(Category).filter(Category.name == name).first()
+            if existing:
+                raise ValueError(f"Category '{name}' already exists")
+
+            category = Category(name=name)
+            session.add(category)
+            session.commit()
+            session.refresh(category)
+            return category
+
+    def get_all_categories(self) -> list[Category]:
+        """Get all categories from the database.
+
+        Returns:
+            List of all categories.
+        """
+        with self.get_session() as session:
+            return session.query(Category).order_by(Category.name).all()
+
+    def get_category_by_name(self, name: str) -> Category | None:
+        """Get a category by its name.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            The Category if found, None otherwise.
+        """
+        with self.get_session() as session:
+            return session.query(Category).filter(Category.name == name).first()
+
+    def delete_category(self, name: str) -> bool:
+        """Delete a category from the database.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            True if deleted, False if category not found.
+        """
+        with self.get_session() as session:
+            category = session.query(Category).filter(Category.name == name).first()
+            if category:
+                session.delete(category)
+                session.commit()
+                return True
+            return False
+
+    def update_transaction_category(
+        self, transaction_id: int, category: str | None
+    ) -> bool:
+        """Update the category of a transaction.
+
+        Args:
+            transaction_id: The database ID of the transaction.
+            category: New category name (or None to clear).
+
+        Returns:
+            True if updated, False if transaction not found.
+        """
+        with self.get_session() as session:
+            transaction = (
+                session.query(Transaction)
+                .filter(Transaction.id == transaction_id)
+                .first()
+            )
+            if transaction:
+                transaction.category = category
+                session.commit()
+                return True
+            return False
+
 
 class AsyncDatabaseManager:
     """Async manager class for database operations.
@@ -318,3 +414,114 @@ class AsyncDatabaseManager:
     async def close(self) -> None:
         """Close the database engine and release resources."""
         await self.engine.dispose()
+
+    async def add_category(self, name: str) -> Category:
+        """Add a new category to the database asynchronously.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            The created Category object.
+
+        Raises:
+            ValueError: If category already exists.
+        """
+        from sqlalchemy import select
+
+        async with self.async_session() as session:
+            # Check if category already exists
+            result = await session.execute(
+                select(Category).filter(Category.name == name)
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                raise ValueError(f"Category '{name}' already exists")
+
+            category = Category(name=name)
+            session.add(category)
+            await session.commit()
+            await session.refresh(category)
+            return category
+
+    async def get_all_categories(self) -> list[Category]:
+        """Get all categories from the database asynchronously.
+
+        Returns:
+            List of all categories.
+        """
+        from sqlalchemy import select
+
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(Category).order_by(Category.name)
+            )
+            return list(result.scalars().all())
+
+    async def get_category_by_name(self, name: str) -> Category | None:
+        """Get a category by its name asynchronously.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            The Category if found, None otherwise.
+        """
+        from sqlalchemy import select
+
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(Category).filter(Category.name == name)
+            )
+            return result.scalar_one_or_none()
+
+    async def delete_category(self, name: str) -> bool:
+        """Delete a category from the database asynchronously.
+
+        Args:
+            name: Category name.
+
+        Returns:
+            True if deleted, False if category not found.
+        """
+        from sqlalchemy import delete, select
+
+        async with self.async_session() as session:
+            # First check if category exists
+            result = await session.execute(
+                select(Category).filter(Category.name == name)
+            )
+            category = result.scalar_one_or_none()
+
+            if category:
+                # Use delete statement instead
+                stmt = delete(Category).where(Category.name == name)
+                await session.execute(stmt)
+                await session.commit()
+                return True
+            return False
+
+    async def update_transaction_category(
+        self, transaction_id: int, category: str | None
+    ) -> bool:
+        """Update the category of a transaction asynchronously.
+
+        Args:
+            transaction_id: The database ID of the transaction.
+            category: New category name (or None to clear).
+
+        Returns:
+            True if updated, False if transaction not found.
+        """
+        from sqlalchemy import select
+
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(Transaction).filter(Transaction.id == transaction_id)
+            )
+            transaction = result.scalar_one_or_none()
+            if transaction:
+                transaction.category = category
+                await session.commit()
+                return True
+            return False

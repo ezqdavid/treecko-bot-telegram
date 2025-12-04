@@ -170,6 +170,94 @@ def test_get_transaction_summary_with_date_filter(db):
     assert summary["transaction_count"] == 1
 
 
+def test_add_category(db):
+    """Test adding a category to the database."""
+    category = db.add_category("Food")
+    assert category.id is not None
+    assert category.name == "Food"
+    assert category.created_at is not None
+
+
+def test_add_duplicate_category(db):
+    """Test that adding duplicate category raises ValueError."""
+    db.add_category("Food")
+    with pytest.raises(ValueError, match="Category 'Food' already exists"):
+        db.add_category("Food")
+
+
+def test_get_all_categories(db):
+    """Test retrieving all categories."""
+    db.add_category("Food")
+    db.add_category("Transport")
+    db.add_category("Entertainment")
+
+    categories = db.get_all_categories()
+    assert len(categories) == 3
+    # Should be sorted by name
+    assert categories[0].name == "Entertainment"
+    assert categories[1].name == "Food"
+    assert categories[2].name == "Transport"
+
+
+def test_get_category_by_name(db):
+    """Test retrieving a category by name."""
+    db.add_category("Food")
+
+    category = db.get_category_by_name("Food")
+    assert category is not None
+    assert category.name == "Food"
+
+    not_found = db.get_category_by_name("NonExistent")
+    assert not_found is None
+
+
+def test_delete_category(db):
+    """Test deleting a category."""
+    db.add_category("Food")
+
+    # Delete existing category
+    success = db.delete_category("Food")
+    assert success is True
+
+    # Verify it's gone
+    category = db.get_category_by_name("Food")
+    assert category is None
+
+    # Delete non-existent category
+    success = db.delete_category("NonExistent")
+    assert success is False
+
+
+def test_update_transaction_category(db):
+    """Test updating transaction category."""
+    # Create a transaction
+    tx = db.add_transaction(
+        date=datetime(2024, 11, 15),
+        description="Lunch",
+        amount=25.00,
+        transaction_type="expense",
+    )
+
+    # Create a category
+    db.add_category("Food")
+
+    # Update transaction category
+    success = db.update_transaction_category(tx.id, "Food")
+    assert success is True
+
+    # Verify update - we need to get by database ID, not transaction_id
+    all_tx = db.get_all_transactions()
+    found_tx = next((t for t in all_tx if t.id == tx.id), None)
+    assert found_tx is not None
+    assert found_tx.category == "Food"
+
+
+def test_update_nonexistent_transaction_category(db):
+    """Test updating category of non-existent transaction."""
+    success = db.update_transaction_category(99999, "Food")
+    assert success is False
+
+
 class TestAsyncDatabaseManager:
     """Tests for the async database manager."""
 
@@ -262,3 +350,91 @@ class TestAsyncDatabaseManager:
             amount=50.00,
         )
         assert tx.id is not None
+
+    @pytest.mark.asyncio
+    async def test_add_category(self, async_db):
+        """Test adding a category asynchronously."""
+        category = await async_db.add_category("Food")
+        assert category.id is not None
+        assert category.name == "Food"
+        assert category.created_at is not None
+
+    @pytest.mark.asyncio
+    async def test_add_duplicate_category(self, async_db):
+        """Test that adding duplicate category raises ValueError asynchronously."""
+        await async_db.add_category("Food")
+        with pytest.raises(ValueError, match="Category 'Food' already exists"):
+            await async_db.add_category("Food")
+
+    @pytest.mark.asyncio
+    async def test_get_all_categories(self, async_db):
+        """Test retrieving all categories asynchronously."""
+        await async_db.add_category("Food")
+        await async_db.add_category("Transport")
+        await async_db.add_category("Entertainment")
+
+        categories = await async_db.get_all_categories()
+        assert len(categories) == 3
+        # Should be sorted by name
+        assert categories[0].name == "Entertainment"
+        assert categories[1].name == "Food"
+        assert categories[2].name == "Transport"
+
+    @pytest.mark.asyncio
+    async def test_get_category_by_name(self, async_db):
+        """Test retrieving a category by name asynchronously."""
+        await async_db.add_category("Food")
+
+        category = await async_db.get_category_by_name("Food")
+        assert category is not None
+        assert category.name == "Food"
+
+        not_found = await async_db.get_category_by_name("NonExistent")
+        assert not_found is None
+
+    @pytest.mark.asyncio
+    async def test_delete_category(self, async_db):
+        """Test deleting a category asynchronously."""
+        await async_db.add_category("Food")
+
+        # Delete existing category
+        success = await async_db.delete_category("Food")
+        assert success is True
+
+        # Verify it's gone
+        category = await async_db.get_category_by_name("Food")
+        assert category is None
+
+        # Delete non-existent category
+        success = await async_db.delete_category("NonExistent")
+        assert success is False
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_category(self, async_db):
+        """Test updating transaction category asynchronously."""
+        # Create a transaction
+        tx = await async_db.add_transaction(
+            date=datetime(2024, 11, 15),
+            description="Lunch",
+            amount=25.00,
+            transaction_type="expense",
+        )
+
+        # Create a category
+        await async_db.add_category("Food")
+
+        # Update transaction category
+        success = await async_db.update_transaction_category(tx.id, "Food")
+        assert success is True
+
+        # Verify update
+        all_tx = await async_db.get_all_transactions()
+        found_tx = next((t for t in all_tx if t.id == tx.id), None)
+        assert found_tx is not None
+        assert found_tx.category == "Food"
+
+    @pytest.mark.asyncio
+    async def test_update_nonexistent_transaction_category(self, async_db):
+        """Test updating category of non-existent transaction asynchronously."""
+        success = await async_db.update_transaction_category(99999, "Food")
+        assert success is False
