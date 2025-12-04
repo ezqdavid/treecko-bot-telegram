@@ -470,7 +470,8 @@ class TreeckoBot:
         if success:
             await update.message.reply_text(
                 f"✅ Category *{category_name}* deleted successfully!\n\n"
-                "Note: Existing transactions with this category will keep their category assignment.",
+                "Note: Existing transactions with this category will keep "
+                "their category assignment.",
                 parse_mode="Markdown",
             )
         else:

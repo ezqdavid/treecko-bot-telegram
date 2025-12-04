@@ -202,11 +202,11 @@ def test_get_all_categories(db):
 def test_get_category_by_name(db):
     """Test retrieving a category by name."""
     db.add_category("Food")
-    
+
     category = db.get_category_by_name("Food")
     assert category is not None
     assert category.name == "Food"
-    
+
     not_found = db.get_category_by_name("NonExistent")
     assert not_found is None
 
@@ -214,15 +214,15 @@ def test_get_category_by_name(db):
 def test_delete_category(db):
     """Test deleting a category."""
     db.add_category("Food")
-    
+
     # Delete existing category
     success = db.delete_category("Food")
     assert success is True
-    
+
     # Verify it's gone
     category = db.get_category_by_name("Food")
     assert category is None
-    
+
     # Delete non-existent category
     success = db.delete_category("NonExistent")
     assert success is False
@@ -237,17 +237,15 @@ def test_update_transaction_category(db):
         amount=25.00,
         transaction_type="expense",
     )
-    
+
     # Create a category
     db.add_category("Food")
-    
+
     # Update transaction category
     success = db.update_transaction_category(tx.id, "Food")
     assert success is True
-    
-    # Verify update
-    updated_tx = db.get_transaction_by_id(None)
-    # We need to get by database ID, not transaction_id
+
+    # Verify update - we need to get by database ID, not transaction_id
     all_tx = db.get_all_transactions()
     found_tx = next((t for t in all_tx if t.id == tx.id), None)
     assert found_tx is not None
@@ -386,11 +384,11 @@ class TestAsyncDatabaseManager:
     async def test_get_category_by_name(self, async_db):
         """Test retrieving a category by name asynchronously."""
         await async_db.add_category("Food")
-        
+
         category = await async_db.get_category_by_name("Food")
         assert category is not None
         assert category.name == "Food"
-        
+
         not_found = await async_db.get_category_by_name("NonExistent")
         assert not_found is None
 
@@ -398,15 +396,15 @@ class TestAsyncDatabaseManager:
     async def test_delete_category(self, async_db):
         """Test deleting a category asynchronously."""
         await async_db.add_category("Food")
-        
+
         # Delete existing category
         success = await async_db.delete_category("Food")
         assert success is True
-        
+
         # Verify it's gone
         category = await async_db.get_category_by_name("Food")
         assert category is None
-        
+
         # Delete non-existent category
         success = await async_db.delete_category("NonExistent")
         assert success is False
@@ -421,14 +419,14 @@ class TestAsyncDatabaseManager:
             amount=25.00,
             transaction_type="expense",
         )
-        
+
         # Create a category
         await async_db.add_category("Food")
-        
+
         # Update transaction category
         success = await async_db.update_transaction_category(tx.id, "Food")
         assert success is True
-        
+
         # Verify update
         all_tx = await async_db.get_all_transactions()
         found_tx = next((t for t in all_tx if t.id == tx.id), None)

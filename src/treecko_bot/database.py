@@ -275,7 +275,11 @@ class DatabaseManager:
             True if updated, False if transaction not found.
         """
         with self.get_session() as session:
-            transaction = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+            transaction = (
+                session.query(Transaction)
+                .filter(Transaction.id == transaction_id)
+                .first()
+            )
             if transaction:
                 transaction.category = category
                 session.commit()
@@ -488,7 +492,7 @@ class AsyncDatabaseManager:
                 select(Category).filter(Category.name == name)
             )
             category = result.scalar_one_or_none()
-            
+
             if category:
                 # Use delete statement instead
                 stmt = delete(Category).where(Category.name == name)
